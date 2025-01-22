@@ -1,0 +1,834 @@
+/*
+	Read the full write-up about this mixin:
+	https://kizu.dev/preview-mixin/
+
+	This is a “native” CSS mixin. It relies on
+	a few specific CSS interactions, see
+	https://kizu.dev/indirect-cyclic-conditions/
+	for the details which cover this `--WHEN` custom
+	property, why we use custom cascade layers, etc.
+*/
+:root { --WHEN: }
+
+/*
+	Most of the custom properties inside are registered,
+	see the list after the mixin.
+*/
+@layer mixins.preview {
+	/*
+		The mixin can be used on any element itself,
+		or on a pseudo-element directly.
+		An `::after` will override the element itself.
+	*/
+	*,
+	*::before,
+	*::after {
+		/*
+			The key custom property adding which to
+			any element turns the mixin on.
+		*/
+		--preview:
+			/*
+				We need to cross-reference these to create
+				the initial cyclic deps. See
+				https://kizu.dev/indirect-cyclic-conditions/
+			*/
+			var(--_p-reset)
+			var(--_p-content)
+			var(--_p-color)
+			var(--_p-reset-value)
+			var(--_p-content-value)
+			var(--_p-color-value)
+
+			/* Not used in the mixin, allows extensions. */
+			var(--preview--toggle)
+		;
+
+		/*
+			A space toggle that could be used as an API.
+			- `initial` when mixin is off.
+			- empty when it is on.
+		*/
+		--preview--toggle: var(--WHEN, var(--preview));
+
+		/* Capturing `<dimension>`-like types. */
+		/*
+			We need `calc()` to catch any stray math
+			like `pi`, `2 + 2` etc.
+		*/
+		--_p-captured: calc(var(--preview));
+
+		/*
+			The next 5 declarations attempt to cast the
+			value as `<number>` from different other types.
+		*/
+		/*
+			Nothing special is required for cating
+			from `<number>`
+		*/
+		--_p-from-number: var(--_p-captured);
+
+		/*
+			To cast other dimension-like values we need to
+			“divide” them by the the same unit to get the
+			`<number>` in the end. See
+			https://dev.to/janeori/css-type-casting-to-numeric-tanatan2-scalars-582j
+
+			The additional division and multiplication
+			10000 is a workaround for a Firefox bug:
+			https://bugzilla.mozilla.org/show_bug.cgi?id=1939353
+
+			In the future, we could just do
+			`calc(var(--_p-captured) / 1px)` etc.
+		*/
+		--_p-from-length: calc(
+			10000
+			*
+			tan(atan2(var(--_p-captured), 10000px))
+		);
+
+		--_p-from-angle: calc(
+			10000
+			*
+			tan(atan2(var(--_p-captured), 10000deg))
+		);
+
+		/*
+			I find it easier to work with `ms`,
+			so we're accounting for this here.
+		*/
+		--_p-from-time: calc(
+			10000000
+			*
+			tan(atan2(var(--_p-captured), 10000s))
+		);
+
+		--_p-from-percentage: calc(
+			10000
+			*
+			tan(atan2(var(--_p-captured), 10000%))
+		);
+
+		/*
+			The final “value” will have only one of
+			the components !== 0.
+		*/
+		--_p-value: (
+			var(--_p-from-length)
+			+
+			var(--_p-from-number)
+			+
+			var(--_p-from-angle)
+			+
+			var(--_p-from-time)
+			+
+			var(--_p-from-percentage)
+		);
+
+		/*
+			When trying to output the fractional value with
+			counters, it is more convenient to work with
+			the absolute values, and separate the sign.
+
+			In the future, it could be just `abs()` and
+			`sign()` (Chrome, hello?).
+		*/
+		--_p-value-abs:
+			max(var(--_p-value), -1 * var(--_p-value));
+
+		--_p-sign:
+			calc(var(--_p-value) / var(--_p-value-abs));
+
+		/*
+			Here we split our value to contain the integer
+			and the decimal parts. For the integer, we use
+			`round()`. The `0.0001` there is a workaround
+			for a Firefox bug:
+			https://bugzilla.mozilla.org/show_bug.cgi?id=1924363
+		*/
+		--_p-part1:
+			round(down, var(--_p-value-abs) + 0.0001, 1);
+
+		--_p-part2: round(
+			(var(--_p-value-abs) - var(--_p-part1))
+			*
+			/*
+				While we could implement more than 3 digits
+				after the dot, it is much more convenient
+				to work with fewer of them, and we rarely
+				need more.
+			*/
+			1000,
+			/*
+				When rounding, we always keep the `1`,
+				which is required for Safari, as it did not
+				yet implement the implicit `1` argument.
+			*/
+			1
+		);
+
+		/*
+			We need to further split the fractional part
+			into separate digits, as otherwise we couldn’t
+			properly output values like `001` with counters.
+		*/
+		--_p-d1: round(down, var(--_p-part2) / 100, 1);
+
+		--_p-d2: round(
+			down,
+			var(--_p-part2) / 10 - var(--_p-d1) * 10,
+			1
+		);
+
+		--_p-d3: round(
+			var(--_p-part2)
+			-
+			var(--_p-d1) * 100
+			-
+			var(--_p-d2) * 10
+			,
+			1
+		);
+
+		/*
+			Most other calculations were moved into the
+			`counter-reset` itself, but when we need to
+			reuse the value, it might be present as a
+			variable.
+
+			The specifics about what this and some
+			other calculations do are in the full write-up:
+			https://kizu.dev/preview-mixin/
+
+			In short, this checks if we need to display the
+			zero symbol after the dot.
+		*/
+		--_p-zero1: calc(
+			var(--_p-d1) + max(0, 1 - var(--_p-part2))
+		);
+
+		/*
+			Checking if the value is empty: `1` when it is,
+			will use initial value which is `0` otherwise.
+		*/
+		--_p-is-empty: 1 var(--preview);
+
+		/*
+			Checking if the value is `initial`/“IACVT”.
+			As it will also catch the empty value, and we
+			already checked it, we can narrow it down.
+		*/
+		--_p-is-initial:
+			calc(1 - var(--_p-is-empty)) var(--preview,);
+
+		/*
+			Type-grinding the value to check if it is a
+			string. It can accept multiple strings, and we
+			use `""` to exclude numbers.
+
+			This means we will later need to exclude empty
+			values when displaying quotes.
+		*/
+		--_p-is-string-or-0: var(--preview) "";
+		--_p-is-string:      var(--_p-is-string-or-0);
+
+		/*
+			We consider the value to be a number if it is
+			not a string, empty, or initial. This is not
+			the only check, we will later need to exclude
+			custom idents via a different technique.
+		*/
+		--_p-is-number: max(
+			0,
+			1
+			-
+			var(--_p-is-string)
+			-
+			var(--_p-is-empty)
+			-
+			var(--_p-is-initial)
+		);
+
+		/* Type-grinding idents that we know of */
+		--known-ident:        var(--preview);
+		--_p-is-1-if-known:   var(--known-ident);
+		--_p-is-known:        var(--_p-is-1-if-known);
+
+		--_p-builtin-ident:   var(--preview);
+		--_p-is-1-if-builtin: var(--_p-builtin-ident);
+		--_p-is-builtin:      var(--_p-is-1-if-builtin);
+
+		--_p-is-custom-ident: var(--preview);
+		--_p-is-none-or-0:    var(--_p-is-custom-ident);
+		--_p-is-none:         var(--_p-is-none-or-0);
+
+		/*
+			Checking if the value is a color. `color-mix()`
+			allows us to switch to a `0` for any non-color
+			value while excluding numbers.
+		*/
+		--_p-is-color-or-0:
+			color-mix(in hsl, var(--preview) 100%, red 0%);
+		--_p-is-color: var(--_p-is-color-or-0);
+
+		/*
+			Problem with the `color` is that it will result
+			in `currentColor`, overriding any color that is
+			set on the pseudo otherwise. Maybe we could use
+			keyframed toggles to do this? We could do just
+			`color-mix(in oklch, var(--preview,), red 0%)`,
+			but Safari will fail in some cases.
+		*/
+		--_p-color: color-mix(
+			in oklch,
+			var(--preview,) calc(100% * var(--_p-is-color)),
+			currentColor
+		);
+
+		/*
+			Defining the value for `counter-reset`,
+			with all the parts needed.
+		*/
+		--_p-reset:
+			--_p-is-color   var(--_p-is-color)
+			--_p-is-none    var(--_p-is-none)
+			--_p-is-empty   var(--_p-is-empty)
+			--_p-is-initial var(--_p-is-initial)
+			/*
+				Empty value will result in false-positive
+				is-string, need to narrow.
+			*/
+			--_p-quote max(
+				0,
+				var(--_p-is-string) - var(--_p-is-empty)
+			)
+			--_p-sign var(--_p-sign)
+			--_p-part1 calc(
+				/*
+					Apply the part value only if it is
+					an actual number.
+				*/
+				var(--_p-part1) * var(--_p-is-number)
+				+
+				/*
+					Otherwise, it can be 424242..424244
+					based on various factors, in which case
+					it will be omitted, but could be used to
+					display other values if necessary,
+					like for idents or colors.
+				*/
+				424242 * (1 - var(--_p-is-number))
+				+
+				var(--_p-is-builtin)
+				+
+				var(--_p-is-known)
+				+
+				var(--_p-is-none)
+				+
+				var(--_p-is-color)
+			)
+			--_p-dot   var(--_p-part2)
+			--_p-zero1 var(--_p-zero1)
+			--_p-zero2 calc(var(--_p-zero1) + var(--_p-d2))
+			--_p-part2 calc(
+				var(--_p-d1)
+				*
+				clamp(
+					1,
+					10 * (var(--_p-d2) + var(--_p-d3)),
+					10
+				)
+				+
+				var(--_p-d2)
+			)
+			--_p-part3 var(--_p-d3)
+
+			/*
+				As we don’t have `round(from-zero, …)`,
+				we have to use `abs()` and round up,
+				so we will get a `0` or a positive
+				non-fractional number.
+
+				Although, as we have the `--_p-sign` we can
+				use it instead of a `max()` workaround.
+
+				If we could do `from-zero`, we could be ok
+				with negative values too.
+			*/
+			--_p-unit-px round(
+				up,
+				var(--_p-from-length) * var(--_p-sign),
+				1
+			)
+			--_p-unit-deg round(
+				up,
+				var(--_p-from-angle) * var(--_p-sign),
+				1
+			)
+			--_p-unit-ms round(
+				up,
+				var(--_p-from-time) * var(--_p-sign),
+				1
+			)
+			--_p-unit-perc round(
+				up,
+				var(--_p-from-percentage) * var(--_p-sign),
+				1
+			)
+		;
+
+		/* For strings, we just need to ensure the type */
+		--_p-as-string: var(--preview);
+
+		/*
+			Defining the value for `content`, with all the
+			parts needed. The second argument is the
+			`@counter-style`, which determine how to display
+			things. See the list of them in the end.
+		*/
+		--_p-content:
+			var(--preview-prefix,)
+
+			/*
+				We don’t have a good way to convert an ident
+				to a string for now, so we have to use a
+				finite list of custom styles for this.
+			*/
+			counter(_, var(--known-ident))
+			counter(_, var(--_p-builtin-ident))
+			/*
+				We can’t have a style with the name `none`,
+				so we grind for it.
+			*/
+			counter(--_p-is-none, --_p-is-none)
+			/*
+				The captured value that is used here will
+				be 424243, and if we don’t change it
+				otherwise (when we can detect a
+				non-dimension type), we show `<unknown>`.
+			*/
+			counter(--_p-part1, --_p-is-unknown)
+			/*
+				Otherwise, we show some other
+				detected types.
+			*/
+			counter(--_p-is-color,   --_p-is-color)
+			counter(--_p-is-empty,   --_p-is-empty)
+			counter(--_p-is-initial, --_p-is-initial)
+
+			/*
+				For strings, we can wrap the value with
+				single quotes. Note that for multiple
+				strings inside a value we cannot map
+				through them sadly.
+			*/
+			counter(--_p-quote, --_p-quote)
+			var(--_p-as-string)
+			counter(--_p-quote, --_p-quote)
+
+			/*
+				The `<dimension>`-like values:
+				we separate all the parts.
+			*/
+			counter(--_p-sign,      --_p-sign)
+			counter(--_p-part1,     --_p-as-number)
+			counter(--_p-dot,       --_p-has-dot)
+			counter(--_p-zero1,     --_p-leading-zero)
+			counter(--_p-zero2,     --_p-leading-zero)
+			counter(--_p-part2,     --_p-has-decimals)
+			counter(--_p-part3,     --_p-has-decimals)
+			counter(--_p-unit-px,   --_p-unit-px)
+			counter(--_p-unit-deg,  --_p-unit-deg)
+			counter(--_p-unit-ms,   --_p-unit-ms)
+			counter(--_p-unit-perc, --_p-unit-perc)
+
+			var(--preview-suffix,)
+		;
+	}
+
+	* {
+		/*
+			If we want to use the values calculated on the
+			element on the pseudos, we need to explicitly
+			inherit them via separate custom properties.
+		*/
+		--_p-reset-inherited:   var(--_p-reset);
+		--_p-content-inherited: var(--_p-content);
+		--_p-color-inherited:   var(--_p-color);
+
+		/*
+			Cyclic toggles for switching the default place
+			we output the `--preview` when it is defined
+			on the element itself.
+		*/
+		--preview-position: var(--preview--after);
+		--preview--after:   var(--preview-position,);
+		--preview--before:  var(--preview-position,);
+	}
+
+	/*
+		Saving the values of cyclic toggles with different
+		names based on position
+	*/
+	*::before {
+		--preview--inherited: var(--preview--before);
+		--preview--self:      var(--preview--after);
+	}
+	*::after {
+		--preview--inherited: var(--preview--after);
+		--preview--self:      var(--preview--before);
+	}
+
+	*::before,
+	*::after {
+		/*
+			If we want to be able to set the value either
+			on a pseudo, or on the element itself, we need
+			to have a few more custom properties.
+		*/
+		--_p-reset-value:
+			var(--_p-reset)   var(--WHEN, var(--preview));
+
+		--_p-content-value:
+			var(--_p-content) var(--WHEN, var(--preview));
+
+		--_p-color-value:
+			var(--_p-color)   var(--WHEN, var(--preview));
+
+		--_p-reset-final: var(
+			--_p-reset-value,
+			var(--_p-reset-inherited)
+		);
+		--_p-color-final: var(
+			--_p-color-value,
+			var(--_p-color-inherited)
+		);
+
+		/*
+			Use different values based on
+			the `--preview-position`
+		*/
+		--preview-content:
+			var(--preview--self, var(--_p-content))
+			var(--preview--inherited, var(
+				--_p-content-value,
+				var(--_p-content-inherited)
+			))
+		;
+		--preview-reset:
+			var(--preview--self,      var(--_p-reset))
+			var(--preview--inherited, var(--_p-reset-final))
+		;
+
+		content:       var(--preview-content, revert-layer);
+		counter-reset: var(--preview-reset,   revert-layer);
+		color:
+			var(
+				--preview--self,
+				var(--_p-color,       revert-layer)
+			)
+			var(
+				--preview--inherited,
+				var(--_p-color-final, revert-layer)
+			)
+		;
+	}
+
+	/*
+		Note: everything below is inside a layer because
+		otherwise it did not work when used in my blog's
+		setup, for some reason. But also, no reason to not
+		add it outside of the layer if we can have it here.
+	*/
+
+	/*
+		It is possible to override this definition from
+		outside and provide other defined `@counter-style`
+		in its `syntax` (while keeping the `empty`).
+	*/
+	@property --known-ident {
+		syntax:       "empty";
+		initial-value: empty;
+		inherits:      false;
+	}
+
+	/*
+		This is the built-in lists, which shows how it
+		is done for a few of them.
+	*/
+	@property --_p-builtin-ident {
+		syntax:       "auto|max-content|min-content|empty";
+		initial-value: empty;
+		inherits:      false;
+	}
+
+	/* This is how the known idents should be defined. */
+	@counter-style auto {
+		system:   cyclic;
+		symbols: "auto";
+	}
+	@counter-style max-content {
+		system:   cyclic;
+		symbols: "max-content";
+	}
+	@counter-style min-content {
+		system:   cyclic;
+		symbols: "min-content";
+	}
+
+	/* At the moment we don’t cover all `<dimension>`. */
+	@property --_p-captured {
+		syntax:
+			"<number>|<length>|<angle>|<time>|<percentage>";
+		/*
+			Will be used to display `<unknown>` when not
+			matching a dimension, and if it is not modified
+			by some other detected type.
+		*/
+		initial-value: 424243;
+		inherits:      false;
+	}
+
+	/*
+		Variables for detecting the dimension type: they all
+		have the same type, but will be called with
+		different types and used later to display units.
+	*/
+	@property --_p-from-number {
+		syntax:       "<number>";
+		initial-value: 0;
+		inherits:      false;
+	}
+	@property --_p-from-length {
+		syntax:       "<number>";
+		initial-value: 0;
+		inherits:      false;
+	}
+	@property --_p-from-angle {
+		syntax:       "<number>";
+		initial-value: 0;
+		inherits:      false;
+	}
+	@property --_p-from-time {
+		syntax:       "<number>";
+		initial-value: 0;
+		inherits:      false;
+	}
+	@property --_p-from-percentage {
+		syntax:       "<number>";
+		initial-value: 0;
+		inherits:      false;
+	}
+
+	/*
+		Captured string, so we can easily display it
+		right away.
+	*/
+	@property --_p-as-string {
+		syntax:       "<string>+";
+		initial-value: "";
+		inherits:      false;
+	}
+
+	/*
+		Below are all the type grinding that is going on
+		for detecting various types. See
+		https://www.bitovi.com/blog/css-only-type-grinding-casting-tokens-into-useful-values
+	*/
+	@property --_p-is-string-or-0 {
+		syntax:       "<string>+|<number>";
+		initial-value: 0;
+		inherits:      false;
+	}
+	@property --_p-is-string {
+		syntax:       "<number>";
+		initial-value: 1;
+		inherits:      false;
+	}
+
+	@property --_p-is-empty {
+		syntax:       "<number>";
+		initial-value: 0;
+		inherits:      false;
+	}
+
+	@property --_p-is-initial {
+		syntax:       "<number>";
+		initial-value: 0;
+		inherits:      false;
+	}
+
+	@property --_p-is-custom-ident {
+		syntax:       "<custom-ident>";
+		initial-value: not-none;
+		inherits:      false;
+	}
+
+	@property --_p-is-none-or-0 {
+		syntax:       "none|<integer>";
+		initial-value: 0;
+		inherits:      false;
+	}
+	@property --_p-is-none {
+		syntax:       "<integer>";
+		initial-value: 1;
+		inherits:      false;
+	}
+
+	@property --_p-is-1-if-builtin {
+		syntax:       "empty|<integer>";
+		initial-value: 1;
+		inherits:      false;
+	}
+	@property --_p-is-builtin {
+		syntax:       "<integer>";
+		initial-value: 0;
+		inherits:      false;
+	}
+
+	@property --_p-is-1-if-known {
+		syntax:       "empty|<integer>";
+		initial-value: 1;
+		inherits:      false;
+	}
+	@property --_p-is-known {
+		syntax:       "<integer>";
+		initial-value: 0;
+		inherits:      false;
+	}
+
+	@property --_p-is-color-or-0 {
+		syntax:       "<color>|<integer>";
+		initial-value: 0;
+		inherits:      false;
+	}
+	@property --_p-is-color {
+		syntax:       "<integer>";
+		initial-value: 1;
+		inherits:      false;
+	}
+
+	/*
+		Below are various counter-styles used for
+		conditional output of various parts of the
+		`content` by matching certain values.
+	*/
+
+	/*
+		Not prefixed as exposed to be used
+		in `--known-ident` definition.
+	*/
+	@counter-style empty {
+		system:  cyclic;
+		symbols: "";
+	}
+
+	/*
+		We can’t have a counter-style `none`,
+		so need to grind to it.
+	*/
+	@counter-style --_p-is-none {
+		system:   cyclic;
+		symbols: "none";
+		/*
+			Here and below, we can use `range` to select
+			when to apply the value, otherwise the
+			counter-style from the `fallback` will be used.
+		*/
+		range:    1 1;
+		fallback: empty;
+	}
+
+	/* The rest of conditional counters. */
+
+	@counter-style --_p-unit-px {
+		system:   cyclic;
+		symbols: "px";
+		range:    1 infinite;
+		fallback: empty;
+	}
+	@counter-style --_p-unit-deg {
+		system:   cyclic;
+		symbols: "deg";
+		range:    1 infinite;
+		fallback: empty;
+	}
+	@counter-style --_p-unit-ms {
+		system:   cyclic;
+		symbols: "ms";
+		range:    1 infinite;
+		fallback: empty;
+	}
+	@counter-style --_p-unit-perc {
+		system:   cyclic;
+		symbols: "%";
+		range:    1 infinite;
+		fallback: empty;
+	}
+	@counter-style --_p-sign {
+		system:   cyclic;
+		symbols: "-";
+		range:    -1 -1;
+		fallback: empty;
+	}
+	@counter-style --_p-as-number {
+		system:  cyclic;
+		symbols: "";
+		/*
+			The range for our “system” values,
+			for which we don’t show the number.
+		*/
+		range: 424242 424244;
+	}
+	@counter-style --_p-has-dot {
+		system:   cyclic;
+		symbols: ".";
+		range:    1 infinite;
+		fallback: empty;
+	}
+	@counter-style --_p-leading-zero {
+		system:  cyclic;
+		symbols: "";
+		range:   1 infinite;
+	}
+	@counter-style --_p-has-decimals {
+		system:  cyclic;
+		symbols: "";
+		range:   0 0;
+	}
+	@counter-style --_p-is-unknown {
+		system:   cyclic;
+		symbols: "<unknown>";
+		/*
+			The `424243` will come from the `initial-value`
+			of captured dimension.
+		*/
+		range:    424243 424243;
+		fallback: empty;
+	}
+	@counter-style --_p-quote {
+		system:   cyclic;
+		symbols: "'";
+		range:    1 1;
+		fallback: empty;
+	}
+	@counter-style --_p-is-empty {
+		system:   cyclic;
+		symbols: "<empty>";
+		range:    1 1;
+		fallback: empty;
+	}
+	@counter-style --_p-is-initial {
+		system:   cyclic;
+		symbols: "<initial>";
+		range:    1 1;
+		fallback: empty;
+	}
+
+	@counter-style --_p-is-color {
+		system:   cyclic;
+		symbols: "■";
+		range:    1 1;
+		fallback: empty;
+	}
+}

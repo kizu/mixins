@@ -1,0 +1,24 @@
+{
+  "name": "@kizu/mixins",
+  "version": "0.1.0",
+  "description": "Experimental Native CSS Mixins",
+  "main": "index.css",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kizu/mixins.git"
+  },
+  "keywords": [
+    "css",
+    "mixins",
+    "experimental"
+  ],
+  "author": "Roman Komarov",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kizu/mixins/issues"
+  },
+  "homepage": "https://github.com/kizu/mixins#readme"
+}

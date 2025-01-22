@@ -1,0 +1,10 @@
+{
+	"editor.detectIndentation": false,
+	"editor.tabSize": 4,
+	"editor.insertSpaces": false,
+	"editor.wordWrap": "bounded",
+	"editor.wordWrapColumn": 60,
+	"editor.rulers": [
+		60
+	]
+}
