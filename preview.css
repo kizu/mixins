@@ -290,6 +290,7 @@
 			with all the parts needed.
 		*/
 		--_p-reset:
+			var(--WHEN, var(--preview))
 			--_p-is-color   var(--_p-is-color)
 			--_p-is-none    var(--_p-is-none)
 			--_p-is-empty   var(--_p-is-empty)
@@ -387,6 +388,7 @@
 			things. See the list of them in the end.
 		*/
 		--_p-content:
+			var(--WHEN, var(--preview))
 			var(--preview-prefix,)
 
 			/*
