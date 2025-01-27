@@ -230,7 +230,9 @@
 			values when displaying quotes.
 		*/
 		--_p-is-string-or-0: var(--preview) "";
-		--_p-is-string:      var(--_p-is-string-or-0);
+		--_p-is-string:
+			var(--_p-has-strings, var(--_p-is-string-or-0))
+			var(--_p-no-strings, 0);
 
 		/*
 			We consider the value to be a number if it is
@@ -425,7 +427,7 @@
 				through them sadly.
 			*/
 			counter(--_p-quote, --_p-quote)
-			var(--_p-as-string)
+			var(--_p-has-strings, var(--_p-as-string))
 			counter(--_p-quote, --_p-quote)
 
 			/*
@@ -534,6 +536,28 @@
 				var(--_p-color-final, revert-layer)
 			)
 		;
+	}
+
+	/*
+		Safari < 18.2 does not support `<string>` inside
+		`@property`, so we have to hide anything related
+		to it behind space toggles for everything else
+		to work correctly.
+	*/
+	body {
+		--_p-has-strings: ;
+		--_p-no-strings: initial;
+
+		/*
+			Safari supports container style queries from 18,
+			so we can use them to detect the `<string>`
+			support, and if there is no styler queries,
+			things will still work.
+		*/
+		@container style(--_p-as-string: "") {
+			--_p-has-strings: initial;
+			--_p-no-strings: ;
+		}
 	}
 
 	/*
