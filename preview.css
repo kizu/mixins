@@ -547,14 +547,16 @@
 	body {
 		--_p-has-strings: ;
 		--_p-no-strings: initial;
+	}
 
-		/*
-			Safari supports container style queries from 18,
-			so we can use them to detect the `<string>`
-			support, and if there is no styler queries,
-			things will still work.
-		*/
-		@container style(--_p-as-string: "") {
+	/*
+		Safari supports container style queries from 18,
+		so we can use them to detect the `<string>`
+		support, and if there is no styler queries,
+		things will still work.
+	*/
+	@container style(--_p-as-string: "") {
+		body {
 			--_p-has-strings: initial;
 			--_p-no-strings: ;
 		}
