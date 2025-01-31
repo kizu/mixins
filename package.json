@@ -1,6 +1,6 @@
 {
   "name": "@kizu/mixins",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "Experimental Native CSS Mixins",
   "main": "index.css",
   "scripts": {

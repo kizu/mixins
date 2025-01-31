@@ -42,6 +42,22 @@ Or
 
 The API docs for the mixin are currently available as a [corresponding section of the article](https://kizu.dev/preview-mixin/preview-mixin/#mixins-api) I wrote about it.
 
+## Changelog
+
+### 0.2.0 — 2025-01-31
+
+#### `--preview` Mixin Extension API
+
+The extension API consists of three custom properties:
+
+- `--preview-cycle-extension` — allows setting up the cycle from the `--preview` custom property in a way similar to how it is already done in the mixin.
+
+- `--preview-reset-extension` — allows adding something to the `counter-reset` value of the mixin.
+
+- `--preview-content-extension` — allows adding something at the end of the mixin's `content` output (but before the `--preview-suffix`).
+
+This API allows extending the `--preview` mixin with new capabilities without touching its existing code, making it easy to prototype new features, or upgrade your usage of it.
+
 ## License
 
 MIT.

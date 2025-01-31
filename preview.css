@@ -42,6 +42,11 @@
 
 			/* Not used in the mixin, allows extensions. */
 			var(--preview--toggle)
+			/*
+				Not used, but can be assigned to short
+				circuit the `--preview` to something else.
+			*/
+			var(--preview-cycle-extension,)
 		;
 
 		/*
@@ -378,6 +383,9 @@
 				var(--_p-from-percentage) * var(--_p-sign),
 				1
 			)
+
+			/* Extension for the reset value */
+			var(--preview-reset-extension,)
 		;
 
 		/* For strings, we just need to ensure the type */
@@ -445,6 +453,9 @@
 			counter(--_p-unit-deg,  --_p-unit-deg)
 			counter(--_p-unit-ms,   --_p-unit-ms)
 			counter(--_p-unit-perc, --_p-unit-perc)
+
+			/* Extension for the content value */
+			var(--preview-content-extension,)
 
 			var(--preview-suffix,)
 		;
