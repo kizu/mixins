@@ -44,6 +44,13 @@ The API docs for the mixin are currently available as a [corresponding section o
 
 ## Changelog
 
+### 0.2.1 — 2025-05-31
+
+Fixed two issues:
+
+- Adjusted `--WHEN` to work with [the change in how short circuiting will work with custom property fallbacks](https://github.com/w3c/csswg-drafts/issues/11500).
+- Added a workaround for a breakage in Chrome with the `tan(atan2())` calculation.
+
 ### 0.2.0 — 2025-01-31
 
 #### `--preview` Mixin Extension API

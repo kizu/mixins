@@ -98,13 +98,13 @@
 		--_p-from-length: calc(
 			10000
 			*
-			tan(atan2(var(--_p-captured), 10000px))
+			tan(atan2(var(--_p-captured) + 0px, 10000px))
 		);
 
 		--_p-from-angle: calc(
 			10000
 			*
-			tan(atan2(var(--_p-captured), 10000deg))
+			tan(atan2(var(--_p-captured) + 0deg, 10000deg))
 		);
 
 		/*
@@ -114,13 +114,13 @@
 		--_p-from-time: calc(
 			10000000
 			*
-			tan(atan2(var(--_p-captured), 10000s))
+			tan(atan2(var(--_p-captured) + 0s, 10000s))
 		);
 
 		--_p-from-percentage: calc(
 			10000
 			*
-			tan(atan2(var(--_p-captured), 10000%))
+			tan(atan2(var(--_p-captured) + 0%, 10000%))
 		);
 
 		/*
