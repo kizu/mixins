@@ -8,7 +8,14 @@
 	for the details which cover this `--WHEN` custom
 	property, why we use custom cascade layers, etc.
 */
-:root { --WHEN: }
+:root {
+	--WHEN: ;
+}
+@supports (top: if(():)) {
+	:root {
+		--WHEN: initial;
+	}
+}
 
 /*
 	Most of the custom properties inside are registered,
@@ -54,7 +61,9 @@
 			- `initial` when mixin is off.
 			- empty when it is on.
 		*/
-		--preview--toggle: var(--WHEN, var(--preview));
+		--preview--toggle:
+			var(--WHEN,
+				if(style(--preview: var(--preview)):));
 
 		/* Capturing `<dimension>`-like types. */
 		/*
@@ -297,7 +306,9 @@
 			with all the parts needed.
 		*/
 		--_p-reset:
-			var(--WHEN, var(--preview))
+			var(--WHEN,
+				if(style(--preview: var(--preview)):)
+			)
 			--_p-is-color   var(--_p-is-color)
 			--_p-is-none    var(--_p-is-none)
 			--_p-is-empty   var(--_p-is-empty)
@@ -398,7 +409,9 @@
 			things. See the list of them in the end.
 		*/
 		--_p-content:
-			var(--WHEN, var(--preview))
+			var(--WHEN,
+				if(style(--preview: var(--preview)):)
+			)
 			var(--preview-prefix,)
 
 			/*
@@ -502,13 +515,19 @@
 			to have a few more custom properties.
 		*/
 		--_p-reset-value:
-			var(--_p-reset)   var(--WHEN, var(--preview));
+			var(--_p-reset)
+			var(--WHEN,
+				if(style(--preview: var(--preview)):));
 
 		--_p-content-value:
-			var(--_p-content) var(--WHEN, var(--preview));
+			var(--_p-content)
+			var(--WHEN,
+				if(style(--preview: var(--preview)):));
 
 		--_p-color-value:
-			var(--_p-color)   var(--WHEN, var(--preview));
+			var(--_p-color)
+			var(--WHEN,
+				if(style(--preview: var(--preview)):));
 
 		--_p-reset-final: var(
 			--_p-reset-value,
